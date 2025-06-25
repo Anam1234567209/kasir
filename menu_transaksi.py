@@ -3,12 +3,14 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.image import Image
 from kivy.uix.widget import Widget
 from kivy.app import App
 from kivy.graphics import Color, RoundedRectangle, Line
 from kivy.uix.popup import Popup
 from kivy.uix.behaviors import ButtonBehavior
+from kivy.uix.image import Image
+from kivy.uix.stencilview import StencilView
+from kivy.core.image import Image as CoreImage
 import datetime
 import os
 
@@ -16,6 +18,7 @@ from temp import SoftButton
 from temp import SoftTextInput
 from temp import fonts
 from temp import SoftPopUp
+from db import get_all_produk
 
 
 class CategoryLabel(ButtonBehavior, Label):
@@ -40,19 +43,20 @@ class MinButton(Button):
         self.outline.rounded_rectangle = [self.x, self.y, self.width, self.height, 18]
 
 
-class RoundedImage(Widget):
-    def __init__(self, source, size=(80, 80), radius=18, **kwargs):
+class MenuImageBox(StencilView):
+    def __init__(self, source, size=80, radius=18, **kwargs):
         super().__init__(**kwargs)
         self.size_hint = (None, None)
-        self.size = size
+        self.size = (size, size)
         with self.canvas:
-            self.bg = RoundedRectangle(pos=self.pos, size=self.size, radius=[radius])
+            Color(1, 1, 1, 1)
+            self.bg = RoundedRectangle(pos=self.pos, size=self.size, radius=[36])
         self.img = Image(
             source=source,
             size_hint=(None, None),
             size=self.size,
             allow_stretch=True,
-            keep_ratio=True,
+            keep_ratio=False,
         )
         self.add_widget(self.img)
         self.bind(pos=self.update_rect, size=self.update_rect)
@@ -62,6 +66,10 @@ class RoundedImage(Widget):
         self.bg.size = self.size
         self.img.pos = self.pos
         self.img.size = self.size
+
+
+class ImageButton(ButtonBehavior, Image):
+    pass
 
 
 class MenuTransaksiScreen(BoxLayout):
@@ -75,38 +83,17 @@ class MenuTransaksiScreen(BoxLayout):
             self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[32])
         self.bind(pos=self.update_rect, size=self.update_rect)
 
-        self.menu_items = [
-            {
-                "name": "Ammericano Coffee",
-                "price": 25000,
-                "image": "gambar/menu_minuman/americano.jpg",
-                "kategori": "Minuman",
-            },
-            {
-                "name": "Cappucino Coffee",
-                "price": 20000,
-                "image": "gambar/menu_minuman/cappucino.jpg",
-                "kategori": "Minuman",
-            },
-            {
-                "name": "Matcha",
-                "price": 10000,
-                "image": "gambar/menu_minuman/matcha.jpg",
-                "kategori": "Minuman",
-            },
-            {
-                "name": "Roti Panggang",
-                "price": 5000,
-                "image": "gambar/menu_makanan/ropang.jpg",
-                "kategori": "Makanan",
-            },
-            {
-                "name": "Pizza Mini",
-                "price": 5000,
-                "image": "gambar/menu_makanan/mini_pizza.jpg",
-                "kategori": "Makanan",
-            },
-        ]
+        # Ambil produk dari database
+        self.menu_items = []
+        for pid, nama, harga, gambar, kategori in get_all_produk():
+            self.menu_items.append(
+                {
+                    "name": nama,
+                    "price": harga,
+                    "image": gambar if gambar else "gambar/menu_makanan/ropang.jpg",  # default jika kosong
+                    "kategori": kategori,
+                }
+            )
         self.transaksi = []
 
         # LEFT: Menu list
@@ -178,6 +165,7 @@ class MenuTransaksiScreen(BoxLayout):
                 text=f"[u]{kategori}[/u]" if i == self.kategori_aktif else kategori,
                 markup=True,
                 font_size=18,
+                font_name="Poppins_Medium",
                 color=(0.2, 0.3, 0.4, 1)
                 if i == self.kategori_aktif
                 else (0.5, 0.5, 0.5, 1),
@@ -198,9 +186,14 @@ class MenuTransaksiScreen(BoxLayout):
 
         self.scroll = ScrollView()
         self.grid = GridLayout(
-            cols=1, spacing=16, size_hint_y=None, padding=[0, 8, 0, 8]
+            cols=4,
+            spacing=24,
+            padding=[8, 8, 8, 8],
+            size_hint_y=None,
+            size_hint_x=1,
         )
         self.grid.bind(minimum_height=self.grid.setter("height"))
+        self.grid.bind(minimum_width=self.grid.setter("width"))
         self.scroll.add_widget(self.grid)
         self.menu_layout.add_widget(self.scroll)
         self.tampilkan_menu()
@@ -323,60 +316,146 @@ class MenuTransaksiScreen(BoxLayout):
     def tampilkan_menu(self):
         self.grid.clear_widgets()
         kategori = self.kategori_list[self.kategori_aktif]
+        self.grid.cols = 4
+        self.grid.size_hint_x = 1
+        self.grid.size_hint_y = None
+        self.grid.padding = [8, 8, 8, 8]
+        self.grid.spacing = 24
+        from kivy.uix.floatlayout import FloatLayout
+        from kivy.graphics import Color, RoundedRectangle
+        class CardButton(ButtonBehavior, FloatLayout):
+            def __init__(self, source, name, price, **kwargs):
+                super().__init__(**kwargs)
+                self.size_hint = (None, None)
+                self.size = (130, 160)
+                from kivy.uix.label import Label
+                from kivy.graphics import Color, RoundedRectangle
+                from kivy.core.image import Image as CoreImage
+                # Gambar dan background dalam satu RoundedRectangle
+                with self.canvas:
+                    try:
+                        tex = CoreImage(source).texture
+                        Color(1, 1, 1, 1)
+                        self.bg = RoundedRectangle(pos=(self.x, self.y+self.height-110), size=(130, 110), radius=[24], texture=tex)
+                    except Exception:
+                        Color(0.95, 0.95, 0.95, 1)
+                        self.bg = RoundedRectangle(pos=(self.x, self.y+self.height-110), size=(130, 110), radius=[24])
+                self.bind(pos=self.update_bg, size=self.update_bg)
+                # Overlay info di atas gambar (benar-benar overlay, satu info_box per kartu)
+                info_box = FloatLayout(size_hint=(1, None), height=44, pos_hint={"x": 0, "y": 0})
+                with info_box.canvas.before:
+                    Color(1, 1, 1, 0)
+                    info_box.bg = RoundedRectangle(pos=info_box.pos, size=(130, 44), radius=[0,0,20,20])
+                def update_info_bg(inst, *args):
+                    info_box.bg.pos = info_box.pos
+                    info_box.bg.size = info_box.size
+                info_box.bind(pos=update_info_bg, size=update_info_bg)
+                # Nama
+                name_label = Label(
+                    text=f"[b]{name}[/b]",
+                    markup=True,
+                    font_size=15,
+                    font_name="Poppins_Bold",
+                    color=(0.18,0.18,0.18,1),
+                    size_hint=(1, None),
+                    height=24,
+                    pos_hint={"x": 0, "y": 0.45},
+                    halign="center",
+                    valign="middle",
+                )
+                name_label.bind(size=name_label.setter("text_size"))
+                # Harga
+                price_label = Label(
+                    text=f"Rp {int(price):,}",
+                    font_size=13,
+                    font_name="Poppins",
+                    color=(0.18,0.18,0.18,1),
+                    size_hint=(1, None),
+                    height=18,
+                    pos_hint={"x": 0, "y": 0},
+                    halign="center",
+                    valign="middle",
+                )
+                price_label.bind(size=price_label.setter("text_size"))
+                info_box.add_widget(name_label)
+                info_box.add_widget(price_label)
+                self.add_widget(info_box)
+            def update_bg(self, *args):
+                self.bg.pos = (self.x, self.y+self.height-110)
+                self.bg.size = (130, 110)
+        class RoundedImage(FloatLayout):
+            def __init__(self, source, name, price, **kwargs):
+                super().__init__(**kwargs)
+                self.size_hint = (None, None)
+                self.size = (130, 110)
+                from kivy.uix.label import Label
+                from kivy.uix.boxlayout import BoxLayout
+                from kivy.graphics import Color, RoundedRectangle
+                from kivy.uix.widget import Widget
+                from kivy.metrics import dp
+                try:
+                    tex = CoreImage(source).texture
+                    with self.canvas:
+                        Color(1, 1, 1, 1)
+                        self.img_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[24], texture=tex)
+                except Exception:
+                    with self.canvas:
+                        Color(0.95, 0.95, 0.95, 1)
+                        self.img_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[24])
+                self.bind(pos=self.update_img, size=self.update_img)
+                # Overlay info di atas gambar (menumpuk di bawah)
+                info_box = BoxLayout(
+                    orientation="vertical",
+                    size_hint=(1, None),
+                    height=44,
+                    pos_hint={"x": 0, "y": 0},
+                    padding=[0, 0, 0, 0],
+                    spacing=0,
+                )
+                with info_box.canvas.before:
+                    Color(1, 1, 1, 0.85)
+                    info_box.bg = RoundedRectangle(pos=info_box.pos, size=(130, 44), radius=[0,0,20,20])
+                def update_info_bg(inst, *args):
+                    info_box.bg.pos = info_box.pos
+                    info_box.bg.size = info_box.size
+                info_box.bind(pos=update_info_bg, size=update_info_bg)
+                info_box.add_widget(Label(
+                    text=f"[b]{name}[/b]",
+                    markup=True,
+                    font_size=15,
+                    font_name="Poppins_Bold",
+                    color=(0.18,0.18,0.18,1),
+                    size_hint_y=None,
+                    height=24,
+                    halign="center",
+                    valign="middle",
+                ))
+                info_box.add_widget(Label(
+                    text=f"Rp {int(price):,}",
+                    font_size=13,
+                    font_name="Poppins",
+                    color=(0.18,0.18,0.18,1),
+                    size_hint_y=None,
+                    height=18,
+                    halign="center",
+                    valign="middle",
+                ))
+                self.add_widget(info_box)
+            def update_img(self, *args):
+                self.img_rect.pos = self.pos
+                self.img_rect.size = self.size
+        # Hitung tinggi grid agar responsif
+        count = 0
         for item in self.menu_items:
             if item["kategori"] != kategori:
                 continue
-            row = BoxLayout(
-                orientation="horizontal",
-                size_hint_y=None,
-                height=110,
-                padding=8,
-                spacing=12,
-            )
-            with row.canvas.before:
-                Color(0.92, 0.96, 1, 1)
-                row.bg_rect = RoundedRectangle(pos=row.pos, size=row.size, radius=[18])
-            row.bind(
-                pos=lambda i, v: setattr(i.bg_rect, "pos", v),
-                size=lambda i, v: setattr(i.bg_rect, "size", v),
-            )
-            # Gambar menu
-            img_box = BoxLayout(size_hint=(None, None), size=(80, 80))
-            img = RoundedImage(
-                source=item["image"],
-                size_hint=(1, 1),  # Mengisi penuh img_box
-            )
-            img_box.add_widget(img)
-            row.add_widget(img_box)
-            # Info
-            info = BoxLayout(orientation="vertical", size_hint_x=0.5, spacing=2)
-            info.add_widget(
-                Label(
-                    text=item["name"],
-                    font_name="Poppins",
-                    font_size=18,
-                    color=(0.2, 0.3, 0.4, 1),
-                )
-            )
-            info.add_widget(
-                Label(
-                    text=f'Rp {item["price"]:,}',
-                    font_name="Poppins",
-                    font_size=15,
-                    color=(0.3, 0.4, 0.5, 1),
-                )
-            )
-            row.add_widget(info)
-            # Tombol Tambah & Kurangi dalam satu BoxLayout vertikal
-            btn_box = BoxLayout(orientation="vertical", size_hint_x=0.28, spacing=6)
-            btn_tambah = SoftButton(text="Tambah", font_size=16, height=44)
-            btn_tambah.bind(on_press=lambda instance, i=item: self.tambah_transaksi(i))
-            btn_kurang = MinButton(text="Kurangi", font_size=16, height=36)
-            btn_kurang.bind(on_press=lambda instance, i=item: self.kurang_transaksi(i))
-            btn_box.add_widget(btn_tambah)
-            btn_box.add_widget(btn_kurang)
-            row.add_widget(btn_box)
-            self.grid.add_widget(row)
+            card = CardButton(item["image"], item["name"], item["price"])
+            card.bind(on_press=lambda inst, i=item: self.tambah_transaksi(i))
+            self.grid.add_widget(card)
+            count += 1
+        # Atur tinggi grid agar cukup untuk semua baris
+        baris = (count + self.grid.cols - 1) // self.grid.cols
+        self.grid.height = baris * 170 + (baris-1)*self.grid.spacing[1] if count else 0
 
     def tambah_transaksi(self, item):
         for t in self.transaksi:

@@ -134,8 +134,7 @@ class HomeScreen(BoxLayout):
         pass
 
     def kelola_produk(self, instance):
-        # TODO: Implementasi kelola produk
-        pass
+        App.get_running_app().kelola_produk()
 
     def logout(self, instance):
         App.get_running_app().back_to_login()

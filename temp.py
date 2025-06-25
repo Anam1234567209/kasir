@@ -9,6 +9,9 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.animation import Animation
 from kivy.properties import BooleanProperty
 from kivy.core.window import Window
+from kivy.uix.spinner import Spinner, SpinnerOption
+from kivy.graphics import Color, RoundedRectangle
+
 
 # Daftarkan semua varian font Poppins
 LabelBase.register(name="Poppins", fn_regular="font/Poppins-Regular.ttf")
@@ -204,3 +207,41 @@ class SoftPopUp(ModalView):
         self.opacity = 0
         anim = Animation(opacity=1, duration=0.15)
         anim.start(self)
+
+
+class SoftSpinnerOption(SpinnerOption):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        with self.canvas.before:
+            Color(0.4, 0.85, 0.87, 1)  # warna soft cyan
+            self.bg = RoundedRectangle(pos=self.pos, size=self.size, radius=[12])
+        self.bind(pos=self.update_bg, size=self.update_bg)
+
+    def update_bg(self, *args):
+        self.bg.pos = self.pos
+        self.bg.size = self.size
+
+
+class RoundedSoftSpinner(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.size_hint = (None, 1)
+        self.width = 140
+        self.padding = [8, 4, 8, 4]
+        self.orientation = "vertical"
+        with self.canvas.before:
+            Color(0.4, 0.85, 0.87, 1)  # warna soft cyan
+            self.bg = RoundedRectangle(pos=self.pos, size=self.size, radius=[18])
+        self.bind(pos=self.update_bg, size=self.update_bg)
+
+    def update_bg(self, *args):
+        self.bg.pos = self.pos
+        self.bg.size = self.size
+
+    @property
+    def text(self):
+        return self.spinner.text
+
+    @text.setter
+    def text(self, value):
+        self.spinner.text = value

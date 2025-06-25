@@ -60,7 +60,7 @@ class LoginScreen(BoxLayout):
         # Label POS
         self.add_widget(
             Label(
-                text="MODUL KIVY",
+                text="WAROENG CAFE",
                 font_size=32,
                 font_name=fonts.Regular,
                 bold=True,
@@ -201,7 +201,7 @@ class KasirApp(MDApp):
         self.root_layout.clear_widgets()
         self.root_layout.add_widget(self.home)
 
-    def build(self):
+    def build(self):  # Inisialisasi database dan tabel produk
         self.root_layout = AnchorLayout(anchor_x="center", anchor_y="center")
         self.login_screen = LoginScreen(size_hint=(None, None), size=(210, 400))
         self.root_layout.add_widget(self.login_screen)
@@ -214,6 +214,12 @@ class KasirApp(MDApp):
     def transaksi(self):
         self.root_layout.clear_widgets()
         self.root_layout.add_widget(MenuTransaksiScreen())
+
+    def kelola_produk(self):
+        self.root_layout.clear_widgets()
+        from kelola_produk import KelolaProdukScreen
+
+        self.root_layout.add_widget(KelolaProdukScreen())
 
 
 if __name__ == "__main__":
