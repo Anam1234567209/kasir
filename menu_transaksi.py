@@ -14,34 +14,19 @@ from kivy.core.image import Image as CoreImage
 import datetime
 import os
 
-from temp import SoftButton
-from temp import SoftTextInput
-from temp import fonts
-from temp import SoftPopUp
-from db import get_all_produk
+from temp import SoftButton, MinButton, SoftTextInput, fonts, SoftPopUp
+from db import get_all_produk, insert_transaksi
+
+# Tambahkan import insert_transaksi
+default_imports = [get_all_produk]
+try:
+    from db import insert_transaksi
+except ImportError:
+    pass
 
 
 class CategoryLabel(ButtonBehavior, Label):
     pass
-
-
-class MinButton(Button):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.background_color = (0, 0, 0, 0)  # Background transparan
-        self.color = (0.2, 0.3, 0.4, 1)  # Warna teks
-        self.font_name = "Poppins_Bold"
-        with self.canvas.before:
-            Color(0.4, 0.85, 0.87, 1)  # Warna stroke (biru soft)
-            self.outline = Line(
-                width=1.3,
-                rounded_rectangle=[self.x, self.y, self.width, self.height, 18],
-            )
-        self.bind(pos=self.update_outline, size=self.update_outline)
-
-    def update_outline(self, *args):
-        self.outline.rounded_rectangle = [self.x, self.y, self.width, self.height, 18]
-
 
 class MenuImageBox(StencilView):
     def __init__(self, source, size=80, radius=18, **kwargs):
@@ -138,7 +123,7 @@ class MenuTransaksiScreen(BoxLayout):
 
         self.menu_layout.add_widget(top_bar)
 
-        self.kategori_list = ["Makanan", "Minuman"]
+        self.kategori_list = ["Makanan", "Sate-satean", "Minuman"]
         self.kategori_aktif = 0  # index kategori aktif
 
         # Kategori bar di tengah
@@ -481,17 +466,30 @@ class MenuTransaksiScreen(BoxLayout):
         self.daftar_pesanan.clear_widgets()
         total = 0
         for item in self.transaksi:
+            row = BoxLayout(orientation="horizontal", size_hint_y=None, height=32, spacing=8)
             label = Label(
                 text=f'{item["name"]} - Rp {item["price"]:,} x{item["qty"]}'
                 if item["qty"] > 1
                 else f'{item["name"]} - Rp {item["price"]:,}',
-                size_hint_y=None,
-                height=32,
+                size_hint_x=0.8,
                 font_name="Poppins",
                 font_size=16,
                 color=(0.2, 0.3, 0.4, 1),
+                halign="left",
+                valign="middle",
             )
-            self.daftar_pesanan.add_widget(label)
+            label.bind(size=label.setter("text_size"))
+            btn_kurang = MinButton(
+                text="-",
+                size_hint_x=0.1,
+                height=10,
+                font_size=18,
+                background_color=(1, 0.6, 0.6, 1),
+            )
+            btn_kurang.bind(on_press=lambda inst, i=item: self.kurang_transaksi(i))
+            row.add_widget(label)
+            row.add_widget(btn_kurang)
+            self.daftar_pesanan.add_widget(row)
             total += item["price"] * item["qty"]
         self.total_label.text = f"Total: Rp {total:,}"
 
@@ -507,6 +505,14 @@ class MenuTransaksiScreen(BoxLayout):
             popup = SoftPopUp("Pembayaran gagal, uang tidak cukup.")
             popup.open()
         else:
+            # Simpan transaksi ke database
+            waktu = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            try:
+                insert_transaksi(waktu, total, pembayaran, kembalian, self.transaksi)
+            except Exception as e:
+                popup = SoftPopUp(f"Gagal menyimpan transaksi: {e}")
+                popup.open()
+                return
             popup = SoftPopUp("Pembayaran berhasil!")
             popup.open()
 
@@ -563,3 +569,9 @@ class MenuTransaksiScreen(BoxLayout):
 
         popup = SoftPopUp(message=f"PDF berhasil dibuat:\n{filename}")
         popup.open()
+
+        # Reset transaksi setelah print
+        self.transaksi = []
+        self.pembayaran_input.text = ""
+        self.kembalian_label.text = "Kembalian: Rp 0"
+        self.update_transaksi()

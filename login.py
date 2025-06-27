@@ -221,6 +221,11 @@ class KasirApp(MDApp):
 
         self.root_layout.add_widget(KelolaProdukScreen())
 
+    def riwayat_transaksi(self):
+        from riwayat_transaksi import RiwayatTransaksiScreen
+        self.root_layout.clear_widgets()
+        self.root_layout.add_widget(RiwayatTransaksiScreen())
+
 
 if __name__ == "__main__":
     KasirApp().run()

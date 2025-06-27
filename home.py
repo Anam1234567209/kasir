@@ -130,8 +130,7 @@ class HomeScreen(BoxLayout):
         App.get_running_app().transaksi()
 
     def riwayat_transaksi(self, instance):
-        # TODO: Implementasi riwayat transaksi
-        pass
+        App.get_running_app().riwayat_transaksi()
 
     def kelola_produk(self, instance):
         App.get_running_app().kelola_produk()

@@ -1,6 +1,6 @@
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
-from kivy.graphics import Color, RoundedRectangle
+from kivy.graphics import Color, RoundedRectangle, Line
 from kivy.core.text import LabelBase
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
@@ -149,6 +149,39 @@ class SoftButton(Button):
         else:
             Window.unbind(mouse_pos=self.on_mouse_pos)
 
+# soft button with red color for delete action
+class MinButton(Button):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.font_name = fonts.Bold
+        # with self.canvas.before:
+        #     self.bg_color = Color(rgba=(204/255, 85/255, 0/255, 1))  # Soft blue
+        #     self.rect = RoundedRectangle(radius=[20], pos=self.pos, size=self.size)
+        # self.bind(pos=self.update_rect, size=self.update_rect)
+        self.background_color = (0, 0, 0, 0)
+        self.color = (0.2, 0.3, 0.4, 1)  # Warna teks
+        with self.canvas.before:
+            Color(0.40, 0.85, 0.87, )  # Warna stroke (biru soft)
+            self.outline = Line(
+                width=1.3,
+                rounded_rectangle=[self.x, self.y, self.width, self.height, 18],
+            )
+        self.bind(pos=self.update_outline, size=self.update_outline)
+
+    def update_outline(self, *args):
+        self.outline.rounded_rectangle = [self.x, self.y, self.width, self.height, 18]
+    
+    def update_rect(self, *args):
+        self.rect.pos = self.pos
+        self.rect.size = self.size
+    
+    def on_hover(self, instance, value):
+        if self.pressed:
+            self.bg_color.rgba = (0.85, 0.18, 0.18, 1)  # Merah gelap saat klik
+        elif value:
+            self.bg_color.rgba = (1, 0.35, 0.35, 1)     # Merah muda saat hover
+        else:
+            self.bg_color.rgba = (1, 0.55, 0.55, 1)     # Normal
 
 class SoftPopUp(ModalView):
     def __init__(self, message="Pesan berhasil disimpan!", **kwargs):

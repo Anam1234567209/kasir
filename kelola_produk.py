@@ -21,6 +21,7 @@ from temp import (
     SoftTextInput,
     fonts,
     SoftPopUp,
+    MinButton
 )
 
 
@@ -89,7 +90,7 @@ class KelolaProdukScreen(BoxLayout):
 
                 self.spinner = Spinner(
                     text="Makanan",
-                    values=["Makanan", "Minuman"],
+                    values=["Makanan", "Sate-satean", "Minuman"],
                     font_name=fonts.Bold,
                     background_color=(0, 0, 0, 0),
                     color=(0.18, 0.38, 0.54, 1),
@@ -211,7 +212,7 @@ class KelolaProdukScreen(BoxLayout):
                 gambar=gambar,
                 kategori=kategori: self.edit_produk(pid, nama, harga, gambar, kategori)
             )
-            hapus_btn = SoftButton(
+            hapus_btn = MinButton(
                 text="Hapus",
                 size_hint_x=0.13,
                 height=36,
