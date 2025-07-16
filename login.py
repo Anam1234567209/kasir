@@ -14,13 +14,15 @@ from kivy.uix.screenmanager import ScreenManager
 
 from home import HomeScreen
 from menu_transaksi import MenuTransaksiScreen
-from temp import SoftTextInput
-from temp import SoftButton
-from temp import fonts
-from temp import SoftPopUp
+from kelola_produk import KelolaProdukScreen
+from riwayat_transaksi import RiwayatTransaksiScreen
+from profile_screen import ProfileScreen
+
+
+from temp import SoftTextInput, SoftButton, ImageButton, fonts, SoftPopUp
 
 # Atur ukuran default window agar terlihat rapi
-Window.size = (800, 560)
+Window.size = (908, 634)
 Window.clearcolor = (0.96, 0.97, 1, 1)  # Soft light blue background
 
 
@@ -38,7 +40,7 @@ class LoginScreen(BoxLayout):
 
         # Logo di tengah (center x dan y) menggunakan AnchorLayout
         logo_anchor = AnchorLayout(
-            anchor_x="center", anchor_y="center", size_hint=(1, None), height=140
+            anchor_x="center", anchor_y="center", size_hint=(1.05, None), height=140
         )
         logo_box = BoxLayout(
             orientation="vertical", size_hint=(None, None), size=(140, 140)
@@ -217,14 +219,15 @@ class KasirApp(MDApp):
 
     def kelola_produk(self):
         self.root_layout.clear_widgets()
-        from kelola_produk import KelolaProdukScreen
-
         self.root_layout.add_widget(KelolaProdukScreen())
 
     def riwayat_transaksi(self):
-        from riwayat_transaksi import RiwayatTransaksiScreen
         self.root_layout.clear_widgets()
         self.root_layout.add_widget(RiwayatTransaksiScreen())
+
+    def profile_screen(self):
+        self.root_layout.clear_widgets()
+        self.root_layout.add_widget(ProfileScreen())
 
 
 if __name__ == "__main__":

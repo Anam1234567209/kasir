@@ -10,7 +10,8 @@ from kivy.animation import Animation
 from kivy.properties import BooleanProperty
 from kivy.core.window import Window
 from kivy.uix.spinner import Spinner, SpinnerOption
-from kivy.graphics import Color, RoundedRectangle
+from kivy.uix.image import Image
+from kivy.uix.behaviors import ButtonBehavior
 
 
 # Daftarkan semua varian font Poppins
@@ -149,6 +150,7 @@ class SoftButton(Button):
         else:
             Window.unbind(mouse_pos=self.on_mouse_pos)
 
+
 # soft button with red color for delete action
 class MinButton(Button):
     def __init__(self, **kwargs):
@@ -161,7 +163,7 @@ class MinButton(Button):
         self.background_color = (0, 0, 0, 0)
         self.color = (0.2, 0.3, 0.4, 1)  # Warna teks
         with self.canvas.before:
-            Color(0.40, 0.85, 0.87, )  # Warna stroke (biru soft)
+            Color(0.87, 0.57, 0.40)
             self.outline = Line(
                 width=1.3,
                 rounded_rectangle=[self.x, self.y, self.width, self.height, 18],
@@ -170,18 +172,90 @@ class MinButton(Button):
 
     def update_outline(self, *args):
         self.outline.rounded_rectangle = [self.x, self.y, self.width, self.height, 18]
-    
+
     def update_rect(self, *args):
         self.rect.pos = self.pos
         self.rect.size = self.size
-    
+
     def on_hover(self, instance, value):
         if self.pressed:
             self.bg_color.rgba = (0.85, 0.18, 0.18, 1)  # Merah gelap saat klik
         elif value:
-            self.bg_color.rgba = (1, 0.35, 0.35, 1)     # Merah muda saat hover
+            self.bg_color.rgba = (1, 0.35, 0.35, 1)  # Merah muda saat hover
         else:
-            self.bg_color.rgba = (1, 0.55, 0.55, 1)     # Normal
+            self.bg_color.rgba = (1, 0.55, 0.55, 1)  # Normal
+
+
+class HomeHoverBtn(Button):
+    hovered = BooleanProperty(False)
+    pressed = BooleanProperty(False)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.font_name = fonts.Bold
+        with self.canvas.before:
+            self.bg_color = Color(0, 0, 0, 0)  # Soft blue
+            self.rect = RoundedRectangle(radius=[20], pos=self.pos, size=self.size)
+        self.bind(pos=self.update_rect, size=self.update_rect)
+        self.background_color = (0, 0, 0, 0)
+        self.color = (0, 0, 0, 0)
+
+        # Hover event
+        self.bind(hovered=self.on_hover)
+        self.bind(pressed=self.on_press_state)
+        self.register_event_type("on_enter")
+        self.register_event_type("on_leave")
+
+    def update_rect(self, *args):
+        self.rect.pos = self.pos
+        self.rect.size = self.size
+
+    def on_enter(self, *args):
+        self.hovered = True
+
+    def on_leave(self, *args):
+        self.hovered = False
+
+    def on_hover(self, instance, value):
+        if self.pressed:
+            self.bg_color.rgba = (0, 0, 0, 0)  # Lebih gelap saat klik
+        elif value:
+            self.bg_color.rgba = (0.55, 0.92, 0.95, 0.1)  # Biru muda saat hover
+        else:
+            self.bg_color.rgba = (0.40, 0.85, 0.87, 0)  # Normal
+
+    def on_press_state(self, instance, value):
+        if value:
+            self.bg_color.rgba = (0.25, 0.65, 0.75, 1)
+        else:
+            self.on_hover(self, self.hovered)
+
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            self.pressed = True
+        return super().on_touch_down(touch)
+
+    def on_touch_up(self, touch):
+        if self.pressed:
+            self.pressed = False
+        return super().on_touch_up(touch)
+
+    def on_mouse_pos(self, *args):
+        if not self.get_root_window():
+            return
+        pos = args[1]
+        inside = self.collide_point(*self.to_widget(*pos))
+        if inside and not self.hovered:
+            self.dispatch("on_enter")
+        elif not inside and self.hovered:
+            self.dispatch("on_leave")
+
+    def on_parent(self, instance, parent):
+        if parent:
+            Window.bind(mouse_pos=self.on_mouse_pos)
+        else:
+            Window.unbind(mouse_pos=self.on_mouse_pos)
+
 
 class SoftPopUp(ModalView):
     def __init__(self, message="Pesan berhasil disimpan!", **kwargs):
@@ -245,8 +319,31 @@ class SoftPopUp(ModalView):
 class SoftSpinnerOption(SpinnerOption):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.background_normal = ""
+        self.background_color = (0, 0, 0, 0)
+        self.color = (0.2, 0.3, 0.4, 1)
+        self.font_name = fonts.Bold
+        self.font_size = 14
         with self.canvas.before:
-            Color(0.4, 0.85, 0.87, 1)  # warna soft cyan
+            Color(1, 1, 1, 1)  # Soft white background
+            self.bg = RoundedRectangle(pos=self.pos, size=self.size, radius=[5])
+        self.bind(pos=self.update_bg, size=self.update_bg)
+
+    def update_bg(self, *args):
+        self.bg.pos = self.pos
+        self.bg.size = self.size
+
+
+class SoftSpinner(Spinner):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.size_hint = (None, None)
+        self.width = 60
+        self.padding = [8, 4, 8, 4]
+        self.orientation = "vertical"
+        self.color = (0.2, 0.3, 0.4, 1)
+        with self.canvas.before:
+            Color(1, 1, 1, 0.8)
             self.bg = RoundedRectangle(pos=self.pos, size=self.size, radius=[12])
         self.bind(pos=self.update_bg, size=self.update_bg)
 
@@ -255,26 +352,5 @@ class SoftSpinnerOption(SpinnerOption):
         self.bg.size = self.size
 
 
-class RoundedSoftSpinner(BoxLayout):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.size_hint = (None, 1)
-        self.width = 140
-        self.padding = [8, 4, 8, 4]
-        self.orientation = "vertical"
-        with self.canvas.before:
-            Color(0.4, 0.85, 0.87, 1)  # warna soft cyan
-            self.bg = RoundedRectangle(pos=self.pos, size=self.size, radius=[18])
-        self.bind(pos=self.update_bg, size=self.update_bg)
-
-    def update_bg(self, *args):
-        self.bg.pos = self.pos
-        self.bg.size = self.size
-
-    @property
-    def text(self):
-        return self.spinner.text
-
-    @text.setter
-    def text(self, value):
-        self.spinner.text = value
+class ImageButton(ButtonBehavior, Image):
+    pass

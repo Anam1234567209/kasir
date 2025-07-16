@@ -21,7 +21,9 @@ from temp import (
     SoftTextInput,
     fonts,
     SoftPopUp,
-    MinButton
+    MinButton,
+    SoftSpinner,
+    SoftSpinnerOption,
 )
 
 
@@ -30,7 +32,7 @@ class KelolaProdukScreen(BoxLayout):
         super().__init__(**kwargs)
         self.orientation = "vertical"
         self.padding = 24
-        self.spacing = 18
+        self.spacing = 24
         with self.canvas.before:
             Color(0.96, 0.97, 1, 1)
             self.bg_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[32])
@@ -97,6 +99,7 @@ class KelolaProdukScreen(BoxLayout):
                     font_size=18,
                     size_hint=(1, 1),
                     sync_height=True,
+                    option_cls=SoftSpinnerOption,
                 )
                 self.add_widget(self.spinner)
 
@@ -113,6 +116,14 @@ class KelolaProdukScreen(BoxLayout):
                 self.spinner.text = value
 
         self.rounded_kategori = RoundedSoftSpinner()
+        # spinner = SoftSpinner(
+        #     text="Pilih Kategori",
+        #     values=["Makanan", "Minuman"],
+        #     background_color=(1, 0.9, 0.9, 1),  # warna latar custom
+        #     color=(0.7, 0.2, 0.2, 1),  # warna teks custom
+        #     option_cls=SoftSpinnerOption,
+        # )
+
         self.simpan_btn = SoftButton(text="Simpan", size_hint=(None, 1), width=100)
         self.simpan_btn.bind(on_press=self.simpan_produk)
         self.pilih_gambar_btn = SoftButton(
@@ -205,12 +216,9 @@ class KelolaProdukScreen(BoxLayout):
                 text="Edit", size_hint_x=0.13, height=36, font_size=14
             )
             edit_btn.bind(
-                on_press=lambda inst,
-                pid=pid,
-                nama=nama,
-                harga=harga,
-                gambar=gambar,
-                kategori=kategori: self.edit_produk(pid, nama, harga, gambar, kategori)
+                on_press=lambda inst, pid=pid, nama=nama, harga=harga, gambar=gambar, kategori=kategori: self.edit_produk(
+                    pid, nama, harga, gambar, kategori
+                )
             )
             hapus_btn = MinButton(
                 text="Hapus",

@@ -11,7 +11,7 @@ from kivy.core.window import Window
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 
-from temp import fonts
+from temp import fonts, HomeHoverBtn, ImageButton
 
 
 class HomeScreen(BoxLayout):
@@ -25,21 +25,51 @@ class HomeScreen(BoxLayout):
 
         # Header
         header = BoxLayout(size_hint=(1, 0.10), padding=[0, 0, 0, 0])
-        header_bg = AnchorLayout(anchor_x="center", anchor_y="center")
+        header_bg = BoxLayout(orientation="horizontal", padding=[35, 0, 35, 0])
         with header_bg.canvas.before:
             Color(0.40, 0.85, 0.87, 1)
             self.header_rect = RoundedRectangle(
                 pos=header_bg.pos, size=header_bg.size, radius=[0]
             )
         header_bg.bind(pos=self.update_header_rect, size=self.update_header_rect)
+
+        # Tombol kiri
+        btn_left = ImageButton(
+            source="gambar/logo_icon/users.png",
+            size_hint_x=None,
+            width=45,
+            on_press=self.profile_screen,
+        )
+
+        # Get cafe profile data
+        import db
+
+        cafe_profile = db.get_cafe_profile()
+        cafe_name = cafe_profile["nama_cafe"] if cafe_profile else "WAROENG CAFE"
+
+        spacer_left = Widget(size_hint_x=0.2)
+
+        # Label di tengah (centered)
         header_label = Label(
-            text="HOME",
-            font_size=22,
-            font_name="Poppins",
+            text=cafe_name,
+            font_size=25,
+            font_name="Poppins_Bold",
             color=(1, 1, 1, 1),
             bold=True,
+            size_hint=(1, 1),
+            halign="center",
+            valign="middle",
         )
+        header_label.bind(size=header_label.setter("text_size"))
+
+        spacer_right = Widget(size_hint_x=0.25)
+
+        # Tambahkan ke header_bg
+        header_bg.add_widget(btn_left)
+        header_bg.add_widget(spacer_left)
         header_bg.add_widget(header_label)
+        header_bg.add_widget(spacer_right)
+
         header.add_widget(header_bg)
         self.add_widget(header)
 
@@ -49,7 +79,7 @@ class HomeScreen(BoxLayout):
             text=f"Selamat Datang, {self.username.upper()}",
             markup=True,
             font_size=26,
-            font_name="Poppins",
+            font_name="Poppins_SemiBold",
             color=(0.1, 0.1, 0.1, 1),
             size_hint=(1, 0.10),
         )
@@ -58,7 +88,7 @@ class HomeScreen(BoxLayout):
 
         # Menu Grid
         grid = GridLayout(
-            cols=2, spacing=20, padding=[40, 0, 40, 0], size_hint=(1, 0.6)
+            cols=2, spacing=16, padding=[80, 0, 80, 0], size_hint=(1, 0.6)
         )
         # Tombol Transaksi Baru
         grid.add_widget(
@@ -115,9 +145,10 @@ class HomeScreen(BoxLayout):
         )
         card.add_widget(lbl)
         # Button transparan di atas (menutupi seluruh card)
-        btn_overlay = Button(
-            background_color=(0, 0, 0, 0),
-            size_hint=(1, 1),
+        btn_overlay = HomeHoverBtn(
+            # background_color=(0, 0, 0, 0),
+            size_hint=(1, None),
+            height=200,
             pos_hint={"x": 0, "y": 0},
             on_press=callback,
         )
@@ -125,6 +156,9 @@ class HomeScreen(BoxLayout):
         btn.add_widget(card)
 
         return btn
+
+    def profile_screen(self, instance):
+        App.get_running_app().profile_screen()
 
     def transaksi_baru(self, instance):
         App.get_running_app().transaksi()

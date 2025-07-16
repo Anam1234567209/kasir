@@ -10,23 +10,63 @@ from kivy.uix.popup import Popup
 from kivy.uix.behaviors import ButtonBehavior
 from kivy.uix.image import Image
 from kivy.uix.stencilview import StencilView
+from kivy.uix.spinner import Spinner
+from kivy.uix.textinput import TextInput
 from kivy.core.image import Image as CoreImage
 import datetime
 import os
+import json
 
-from temp import SoftButton, MinButton, SoftTextInput, fonts, SoftPopUp
-from db import get_all_produk, insert_transaksi
+from temp import (
+    SoftButton,
+    MinButton,
+    SoftTextInput,
+    fonts,
+    SoftPopUp,
+    SoftSpinner,
+    SoftSpinnerOption,
+    ImageButton,
+)
+from db import get_all_produk, insert_transaksi, get_cafe_profile
 
-# Tambahkan import insert_transaksi
+# import insert_transaksi
 default_imports = [get_all_produk]
 try:
     from db import insert_transaksi
 except ImportError:
     pass
 
+# File untuk menyimpan meja aktif
+MEJA_AKTIF_FILE = "meja_aktif.json"
+
+
+def reset_meja_aktif():
+    try:
+        with open(MEJA_AKTIF_FILE, "w") as f:
+            json.dump([], f)
+    except Exception as e:
+        print(f"Gagal reset meja_aktif: {e}")
+
+
+def save_meja_aktif(meja_aktif):
+    try:
+        with open(MEJA_AKTIF_FILE, "w") as f:
+            json.dump(list(meja_aktif), f)
+    except Exception as e:
+        print(f"Gagal menyimpan meja_aktif: {e}")
+
+
+def load_meja_aktif():
+    try:
+        with open(MEJA_AKTIF_FILE, "r") as f:
+            return set(json.load(f))
+    except Exception:
+        return set()
+
 
 class CategoryLabel(ButtonBehavior, Label):
     pass
+
 
 class MenuImageBox(StencilView):
     def __init__(self, source, size=80, radius=18, **kwargs):
@@ -53,10 +93,6 @@ class MenuImageBox(StencilView):
         self.img.size = self.size
 
 
-class ImageButton(ButtonBehavior, Image):
-    pass
-
-
 class MenuTransaksiScreen(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -75,11 +111,14 @@ class MenuTransaksiScreen(BoxLayout):
                 {
                     "name": nama,
                     "price": harga,
-                    "image": gambar if gambar else "gambar/menu_makanan/ropang.jpg",  # default jika kosong
+                    "image": (
+                        gambar if gambar else "gambar/menu_makanan/ropang.jpg"
+                    ),  # default jika kosong
                     "kategori": kategori,
                 }
             )
         self.transaksi = []
+        self.meja_aktif = load_meja_aktif()  # Set untuk menyimpan no meja aktif
 
         # LEFT: Menu list
         self.menu_layout = BoxLayout(
@@ -104,7 +143,7 @@ class MenuTransaksiScreen(BoxLayout):
             markup=True,
             size_hint=(None, 1),
             # width=200,
-            size_hint_x=0.5,  # Atur lebar sesuai kebutuhan, atau gunakan size_hint_x jika ingin lebih fleksibel
+            size_hint_x=None,  # Atur lebar sesuai kebutuhan, atau gunakan size_hint_x jika ingin lebih fleksibel
             font_size=24,
             font_name="Poppins_Bold",
             color=(0.2, 0.3, 0.4, 1),
@@ -118,8 +157,9 @@ class MenuTransaksiScreen(BoxLayout):
 
         top_bar.add_widget(back_btn)
         top_bar.add_widget(spacer)
+        # top_bar.add_widget(Widget(size_hint_x=1))  # Spacer kiri
         top_bar.add_widget(menu_label)
-        top_bar.add_widget(Widget())  # Spacer kanan
+        top_bar.add_widget(Widget(size_hint_x=1.2))  # Spacer kanan
 
         self.menu_layout.add_widget(top_bar)
 
@@ -142,7 +182,7 @@ class MenuTransaksiScreen(BoxLayout):
             pos_hint={"center_x": 0.5},
         )
         kategori_bar.width = (
-            len(self.kategori_list) * 120 + (len(self.kategori_list) - 1) * 24
+            len(self.kategori_list) * 120 + (len(self.kategori_list) - 1) * 60
         )  # 120=lebar label, 24=spacing
 
         for i, kategori in enumerate(self.kategori_list):
@@ -151,9 +191,11 @@ class MenuTransaksiScreen(BoxLayout):
                 markup=True,
                 font_size=18,
                 font_name="Poppins_Medium",
-                color=(0.2, 0.3, 0.4, 1)
-                if i == self.kategori_aktif
-                else (0.5, 0.5, 0.5, 1),
+                color=(
+                    (0.2, 0.3, 0.4, 1)
+                    if i == self.kategori_aktif
+                    else (0.5, 0.5, 0.5, 1)
+                ),
                 size_hint=(None, 1),
                 width=120,
                 halign="center",
@@ -164,7 +206,7 @@ class MenuTransaksiScreen(BoxLayout):
 
         kategori_bar_container.add_widget(Widget(size_hint_x=1))  # Spacer kiri
         kategori_bar_container.add_widget(kategori_bar)
-        kategori_bar_container.add_widget(Widget(size_hint_x=1))  # Spacer kanan
+        kategori_bar_container.add_widget(Widget(size_hint_x=1.5))  # Spacer kanan
 
         self.menu_layout.add_widget(kategori_bar_container)
         self.kategori_bar = kategori_bar
@@ -210,21 +252,69 @@ class MenuTransaksiScreen(BoxLayout):
         self.total_label = Label(
             text="Total: Rp 0",
             size_hint_y=None,
-            height=36,
-            font_size=18,
+            height=20,
+            font_size=15,
             font_name="Poppins_Bold",
             color=(0.2, 0.3, 0.4, 1),
         )
         self.kembalian_label = Label(
             text="Kembalian: Rp 0",
             size_hint_y=None,
-            height=36,
-            font_size=18,
+            height=20,
+            font_size=15,
             font_name="Poppins_Bold",
             color=(0.2, 0.3, 0.4, 1),
         )
+        self.noMeja_label = Label(
+            text="No Meja:",
+            size_hint_y=None,
+            height=32,
+            font_size=15,
+            font_name="Poppins_Bold",
+            color=(0.2, 0.3, 0.4, 1),
+            size_hint_x=None,
+            width=70,
+        )
+
+        self.noMeja_input = SoftSpinner(
+            text=self.get_next_meja(),
+            values=self.get_meja_options(),
+            size_hint_y=None,
+            height=32,
+            size_hint_x=None,
+            width=80,
+            font_size=18,
+            font_name="Poppins_Bold",
+            background_color=(0.92, 0.96, 1, 0),
+            color=(0.2, 0.3, 0.4, 1),
+            option_cls=SoftSpinnerOption,
+        )
+        self.noMeja_input.bind(text=self.on_meja_selected)
+
+        self.reset_btn = ImageButton(
+            source="gambar/logo_icon/reset.png",
+            size_hint=(None, 1),  # tambahkan ini
+            size=(16, 16),
+            allow_stretch=True,
+            keep_ratio=True,
+            on_press=lambda inst: self.reset_no_meja_manual(),
+        )
+        # reset_btn.bind()
+        # self.transaksi_layout.add_widget(reset_btn)
+        # bayar_btn.bind(on_press=self.bayar)
+
+        no_meja_box = BoxLayout(
+            orientation="horizontal", size_hint_y=None, height=32, spacing=0, padding=0
+        )
+        no_meja_box.add_widget(Widget(size_hint_x=1))  # Spacer kiri
+        no_meja_box.add_widget(self.noMeja_label)
+        no_meja_box.add_widget(self.noMeja_input)
+        no_meja_box.add_widget(self.reset_btn)
+        no_meja_box.add_widget(Widget(size_hint_x=1))  # Spacer kanan
+
         self.transaksi_layout.add_widget(self.total_label)
         self.transaksi_layout.add_widget(self.kembalian_label)
+        self.transaksi_layout.add_widget(no_meja_box)
 
         self.pembayaran_input = SoftTextInput(
             hint_text="Pembayaran",
@@ -253,10 +343,14 @@ class MenuTransaksiScreen(BoxLayout):
         self.add_widget(self.menu_layout)
         self.add_widget(self.transaksi_layout)
 
-        self.menu_layout.size_hint_x = 2
+        self.menu_layout.size_hint_x = 2.3
         self.transaksi_layout.size_hint_x = 1
 
         self.bind(on_touch_move=self.on_swipe_kategori)
+
+    def kembali(self, instance):
+        app = App.get_running_app()
+        app.home()  # Pastikan fungsi open_home() ada di App Anda
 
     def pilih_kategori(self, idx):
         self.kategori_aktif = idx
@@ -290,10 +384,6 @@ class MenuTransaksiScreen(BoxLayout):
         self.kategori_aktif = kategori
         self.tampilkan_menu()
 
-    def kembali(self, instance):
-        app = App.get_running_app()
-        app.home()  # Pastikan fungsi open_home() ada di App Anda
-
     def update_rect(self, *args):
         self.bg_rect.pos = self.pos
         self.bg_rect.size = self.size
@@ -304,36 +394,53 @@ class MenuTransaksiScreen(BoxLayout):
         self.grid.cols = 4
         self.grid.size_hint_x = 1
         self.grid.size_hint_y = None
-        self.grid.padding = [8, 8, 8, 8]
-        self.grid.spacing = 24
+        self.grid.padding = [10, 10, 10, 10]
+        self.grid.spacing = 25
         from kivy.uix.floatlayout import FloatLayout
         from kivy.graphics import Color, RoundedRectangle
+
         class CardButton(ButtonBehavior, FloatLayout):
             def __init__(self, source, name, price, **kwargs):
                 super().__init__(**kwargs)
                 self.size_hint = (None, None)
-                self.size = (130, 160)
+                self.size = (160, 190)
                 from kivy.uix.label import Label
                 from kivy.graphics import Color, RoundedRectangle
                 from kivy.core.image import Image as CoreImage
+
                 # Gambar dan background dalam satu RoundedRectangle
                 with self.canvas:
                     try:
                         tex = CoreImage(source).texture
                         Color(1, 1, 1, 1)
-                        self.bg = RoundedRectangle(pos=(self.x, self.y+self.height-110), size=(130, 110), radius=[24], texture=tex)
+                        self.bg = RoundedRectangle(
+                            pos=(self.x, self.y + self.height - 110),
+                            size=(160, 140),
+                            radius=[24],
+                            texture=tex,
+                        )
                     except Exception:
                         Color(0.95, 0.95, 0.95, 1)
-                        self.bg = RoundedRectangle(pos=(self.x, self.y+self.height-110), size=(130, 110), radius=[24])
+                        self.bg = RoundedRectangle(
+                            pos=(self.x, self.y + self.height - 110),
+                            size=(160, 140),
+                            radius=[24],
+                        )
                 self.bind(pos=self.update_bg, size=self.update_bg)
                 # Overlay info di atas gambar (benar-benar overlay, satu info_box per kartu)
-                info_box = FloatLayout(size_hint=(1, None), height=44, pos_hint={"x": 0, "y": 0})
+                info_box = FloatLayout(
+                    size_hint=(1, None), height=44, pos_hint={"x": 0, "y": 0}
+                )
                 with info_box.canvas.before:
                     Color(1, 1, 1, 0)
-                    info_box.bg = RoundedRectangle(pos=info_box.pos, size=(130, 44), radius=[0,0,20,20])
+                    info_box.bg = RoundedRectangle(
+                        pos=info_box.pos, size=(160, 44), radius=[0, 0, 20, 20]
+                    )
+
                 def update_info_bg(inst, *args):
                     info_box.bg.pos = info_box.pos
                     info_box.bg.size = info_box.size
+
                 info_box.bind(pos=update_info_bg, size=update_info_bg)
                 # Nama
                 name_label = Label(
@@ -341,7 +448,7 @@ class MenuTransaksiScreen(BoxLayout):
                     markup=True,
                     font_size=15,
                     font_name="Poppins_Bold",
-                    color=(0.18,0.18,0.18,1),
+                    color=(0.18, 0.18, 0.18, 1),
                     size_hint=(1, None),
                     height=24,
                     pos_hint={"x": 0, "y": 0.45},
@@ -354,7 +461,7 @@ class MenuTransaksiScreen(BoxLayout):
                     text=f"Rp {int(price):,}",
                     font_size=13,
                     font_name="Poppins",
-                    color=(0.18,0.18,0.18,1),
+                    color=(0.18, 0.18, 0.18, 1),
                     size_hint=(1, None),
                     height=18,
                     pos_hint={"x": 0, "y": 0},
@@ -365,28 +472,35 @@ class MenuTransaksiScreen(BoxLayout):
                 info_box.add_widget(name_label)
                 info_box.add_widget(price_label)
                 self.add_widget(info_box)
+
             def update_bg(self, *args):
-                self.bg.pos = (self.x, self.y+self.height-110)
-                self.bg.size = (130, 110)
+                self.bg.pos = (self.x, self.y + self.height - 140)
+                self.bg.size = (160, 140)
+
         class RoundedImage(FloatLayout):
             def __init__(self, source, name, price, **kwargs):
                 super().__init__(**kwargs)
                 self.size_hint = (None, None)
-                self.size = (130, 110)
+                self.size = (160, 140)
                 from kivy.uix.label import Label
                 from kivy.uix.boxlayout import BoxLayout
                 from kivy.graphics import Color, RoundedRectangle
                 from kivy.uix.widget import Widget
                 from kivy.metrics import dp
+
                 try:
                     tex = CoreImage(source).texture
                     with self.canvas:
                         Color(1, 1, 1, 1)
-                        self.img_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[24], texture=tex)
+                        self.img_rect = RoundedRectangle(
+                            pos=self.pos, size=self.size, radius=[24], texture=tex
+                        )
                 except Exception:
                     with self.canvas:
                         Color(0.95, 0.95, 0.95, 1)
-                        self.img_rect = RoundedRectangle(pos=self.pos, size=self.size, radius=[24])
+                        self.img_rect = RoundedRectangle(
+                            pos=self.pos, size=self.size, radius=[24]
+                        )
                 self.bind(pos=self.update_img, size=self.update_img)
                 # Overlay info di atas gambar (menumpuk di bawah)
                 info_box = BoxLayout(
@@ -399,36 +513,46 @@ class MenuTransaksiScreen(BoxLayout):
                 )
                 with info_box.canvas.before:
                     Color(1, 1, 1, 0.85)
-                    info_box.bg = RoundedRectangle(pos=info_box.pos, size=(130, 44), radius=[0,0,20,20])
+                    info_box.bg = RoundedRectangle(
+                        pos=info_box.pos, size=(130, 44), radius=[0, 0, 20, 20]
+                    )
+
                 def update_info_bg(inst, *args):
                     info_box.bg.pos = info_box.pos
                     info_box.bg.size = info_box.size
+
                 info_box.bind(pos=update_info_bg, size=update_info_bg)
-                info_box.add_widget(Label(
-                    text=f"[b]{name}[/b]",
-                    markup=True,
-                    font_size=15,
-                    font_name="Poppins_Bold",
-                    color=(0.18,0.18,0.18,1),
-                    size_hint_y=None,
-                    height=24,
-                    halign="center",
-                    valign="middle",
-                ))
-                info_box.add_widget(Label(
-                    text=f"Rp {int(price):,}",
-                    font_size=13,
-                    font_name="Poppins",
-                    color=(0.18,0.18,0.18,1),
-                    size_hint_y=None,
-                    height=18,
-                    halign="center",
-                    valign="middle",
-                ))
+                info_box.add_widget(
+                    Label(
+                        text=f"[b]{name}[/b]",
+                        markup=True,
+                        font_size=15,
+                        font_name="Poppins_Bold",
+                        color=(0.18, 0.18, 0.18, 1),
+                        size_hint_y=None,
+                        height=24,
+                        halign="center",
+                        valign="middle",
+                    )
+                )
+                info_box.add_widget(
+                    Label(
+                        text=f"Rp {int(price):,}",
+                        font_size=13,
+                        font_name="Poppins",
+                        color=(0.18, 0.18, 0.18, 1),
+                        size_hint_y=None,
+                        height=18,
+                        halign="center",
+                        valign="middle",
+                    )
+                )
                 self.add_widget(info_box)
+
             def update_img(self, *args):
                 self.img_rect.pos = self.pos
                 self.img_rect.size = self.size
+
         # Hitung tinggi grid agar responsif
         count = 0
         for item in self.menu_items:
@@ -440,7 +564,9 @@ class MenuTransaksiScreen(BoxLayout):
             count += 1
         # Atur tinggi grid agar cukup untuk semua baris
         baris = (count + self.grid.cols - 1) // self.grid.cols
-        self.grid.height = baris * 170 + (baris-1)*self.grid.spacing[1] if count else 0
+        self.grid.height = (
+            baris * 170 + (baris - 1) * self.grid.spacing[1] if count else 0
+        )
 
     def tambah_transaksi(self, item):
         for t in self.transaksi:
@@ -466,11 +592,15 @@ class MenuTransaksiScreen(BoxLayout):
         self.daftar_pesanan.clear_widgets()
         total = 0
         for item in self.transaksi:
-            row = BoxLayout(orientation="horizontal", size_hint_y=None, height=32, spacing=8)
+            row = BoxLayout(
+                orientation="horizontal", size_hint_y=None, height=32, spacing=8
+            )
             label = Label(
-                text=f'{item["name"]} - Rp {item["price"]:,} x{item["qty"]}'
-                if item["qty"] > 1
-                else f'{item["name"]} - Rp {item["price"]:,}',
+                text=(
+                    f'{item["name"]} - Rp {item["price"]:,} x{item["qty"]}'
+                    if item["qty"] > 1
+                    else f'{item["name"]} - Rp {item["price"]:,}'
+                ),
                 size_hint_x=0.8,
                 font_name="Poppins",
                 font_size=16,
@@ -493,6 +623,47 @@ class MenuTransaksiScreen(BoxLayout):
             total += item["price"] * item["qty"]
         self.total_label.text = f"Total: Rp {total:,}"
 
+    def get_next_meja(self):
+        terpakai = self.meja_aktif
+        if len(terpakai) >= 50:
+            # Jika sudah penuh, reset meja aktif
+            self.meja_aktif.clear()
+            save_meja_aktif(self.meja_aktif)
+            reset_meja_aktif()
+            return "-1-"
+        for i in range(1, 51):
+            if i not in terpakai:
+                return f"-{i}-"
+        return "-1-"
+
+    def get_meja_options(self):
+        terpakai = self.meja_aktif
+        current = self.noMeja_input.text if hasattr(self, "noMeja_input") else None
+        # options = [str(i) for i in range(1, 51) if i not in terpakai or str(i) == current]
+        if len(terpakai) >= 50:
+            # Jika sudah penuh, reset
+            self.meja_aktif.clear()
+            save_meja_aktif(self.meja_aktif)
+            reset_meja_aktif()
+            return [str(i) for i in range(1, 51)]
+        return [str(i) for i in range(1, 51) if i not in terpakai or str(i) == current]
+
+    def on_meja_selected(self, instance, value):
+        # Tidak perlu validasi int, Spinner hanya berisi angka valid
+        pass
+
+    def get_meja_aktif(self):
+        # Implementasi: return list nomor meja yang sedang aktif/transaksi berjalan
+        # Contoh dummy:
+        return list(self.meja_aktif)
+
+    def reset_no_meja_manual(self):
+        self.meja_aktif.clear()
+        save_meja_aktif(self.meja_aktif)
+        reset_meja_aktif()
+        self.noMeja_input.values = self.get_meja_options()
+        self.noMeja_input.text = self.get_next_meja()
+
     def bayar(self, instance):
         pembayaran = int(self.pembayaran_input.text or 0)
         total = sum(item["price"] * item["qty"] for item in self.transaksi)
@@ -508,7 +679,15 @@ class MenuTransaksiScreen(BoxLayout):
             # Simpan transaksi ke database
             waktu = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             try:
-                insert_transaksi(waktu, total, pembayaran, kembalian, self.transaksi)
+                no_meja = int(self.noMeja_input.text.strip("-"))
+                insert_transaksi(
+                    waktu, no_meja, total, pembayaran, kembalian, self.transaksi
+                )
+                self.meja_aktif.add(no_meja)
+                save_meja_aktif(self.meja_aktif)
+                # Update pilihan Spinner setelah pembayaran
+                self.noMeja_input.values = self.get_meja_options()
+                self.noMeja_input.text = self.get_next_meja()
             except Exception as e:
                 popup = SoftPopUp(f"Gagal menyimpan transaksi: {e}")
                 popup.open()
@@ -524,7 +703,7 @@ class MenuTransaksiScreen(BoxLayout):
 
         waktu = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"transaksi_{waktu}.pdf"
-        folder = "D:/Kasir/print_transaksi"
+        folder = "print_transaksi"
         if not os.path.exists(folder):
             os.makedirs(folder)
         filepath = os.path.join(folder, filename)
@@ -535,6 +714,45 @@ class MenuTransaksiScreen(BoxLayout):
         c = canvas.Canvas(filepath, pagesize=A4)
         width, height = A4
         y = height - 50
+
+        # Get cafe profile data
+        cafe_profile = get_cafe_profile()
+
+        # Header section with cafe profile
+        c.setFont("Helvetica-Bold", 24)
+        cafe_name = cafe_profile["nama_cafe"] if cafe_profile else "WAROENG CAFE"
+        c.drawString(50, y, cafe_name)
+        y -= 30
+
+        c.setFont("Helvetica", 14)
+        slogan = (
+            cafe_profile["slogan"]
+            if cafe_profile
+            else "Nikmati Kelezatan dalam Setiap Gigitan"
+        )
+        c.drawString(50, y, slogan)
+        y -= 25
+
+        c.setFont("Helvetica", 10)
+        alamat = (
+            cafe_profile["alamat_cafe"]
+            if cafe_profile
+            else "Jl. Contoh No. 123, Kota, Provinsi"
+        )
+        c.drawString(50, y, alamat)
+        y -= 15
+
+        email = cafe_profile["email_cafe"] if cafe_profile else "info@waroengcafe.com"
+        c.drawString(50, y, email)
+        y -= 15
+
+        phone = cafe_profile["no_hp_cafe"] if cafe_profile else "+62 812-3456-7890"
+        c.drawString(50, y, phone)
+        y -= 25
+
+        # Divider line
+        c.line(50, y, width - 50, y)
+        y -= 25
 
         c.setFont("Helvetica-Bold", 18)
         c.drawString(50, y, "Ringkasan Transaksi")
@@ -574,4 +792,13 @@ class MenuTransaksiScreen(BoxLayout):
         self.transaksi = []
         self.pembayaran_input.text = ""
         self.kembalian_label.text = "Kembalian: Rp 0"
+        try:
+            no_meja = int(self.noMeja_input.text)
+            # self.meja_aktif.discard(no_meja)
+            # save_meja_aktif(self.meja_aktif)
+            # Jangan reset values spinner di sini!
+            # self.noMeja_input.values = self.get_meja_options()
+            # self.noMeja_input.text = self.get_next_meja()
+        except Exception:
+            pass
         self.update_transaksi()
