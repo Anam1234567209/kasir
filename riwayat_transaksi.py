@@ -6,7 +6,7 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 from kivy.app import App
 from kivy.graphics import Color, RoundedRectangle
-from temp import SoftButton, SoftPopUp, fonts, MinButton
+from temp import SoftButton, SoftPopUp, fonts, MinButton, ImageBtn, ConfirmDeletePopup
 from db import get_all_transaksi, delete_all_transaksi, delete_transaksi
 
 
@@ -23,7 +23,7 @@ class RiwayatTransaksiScreen(BoxLayout):
 
         # Baris atas: tombol kembali + label Riwayat
         top_bar = BoxLayout(
-            orientation="horizontal", size_hint_y=None, height=48, spacing=0
+            orientation="horizontal", size_hint_y=None, height=48, spacing=5
         )
         back_btn = SoftButton(
             text="<",
@@ -52,13 +52,26 @@ class RiwayatTransaksiScreen(BoxLayout):
             font_size=15,
             background_color=(0.87, 0.57, 0.40, 1),
         )
-        # hapusAll_btn.bind(on_press=lambda x: self.hapus_semua_transaksi())
+        hapusAll_btn.bind(on_press=lambda x: self.hapus_semua_transaksi())
+        
+        rekap_btn = SoftButton(
+            text="Rekap",
+            size_hint_x=None,
+            size_hint_y=None,
+            height=40,
+            width=80,
+            font_size=15,
+            background_color=(0.4, 0.85, 0.87, 1),
+            font_name=fonts.Bold
+        )
+        rekap_btn.bind(on_press=self.ke_rekap_transaksi)
 
         riwayat_label.bind(size=riwayat_label.setter("text_size"))
         top_bar.add_widget(back_btn)
-        top_bar.add_widget(Widget(size_hint_x=0.2))  # Spacer
+        top_bar.add_widget(Widget(size_hint_x=0.32))  # Spacer
         top_bar.add_widget(riwayat_label)
-        top_bar.add_widget(Widget(size_hint_x=0.12))  # Spacer
+        top_bar.add_widget(Widget(size_hint_x=0.11))  # Spacer
+        top_bar.add_widget(rekap_btn)
         top_bar.add_widget(hapusAll_btn)
         self.add_widget(top_bar)
 
@@ -160,7 +173,7 @@ class RiwayatTransaksiScreen(BoxLayout):
                 font_name=fonts.Bold,
                 font_size=16,
                 color=(0.18, 0.38, 0.54, 1),
-                size_hint_x=0.18,
+                size_hint_x=0.25,
                 halign="center",
                 valign="middle",
             )
@@ -195,7 +208,11 @@ class RiwayatTransaksiScreen(BoxLayout):
             row.add_widget(waktu)
             # Kolom no meja
             no_meja_val = trx["no_meja"]
-            no_meja_text = f"{no_meja_val:,}" if no_meja_val is not None else "TA"
+            from_riwayat = trx.get("from_riwayat", False)
+            if from_riwayat:
+                no_meja_text = f"{no_meja_val}+" if no_meja_val is not None else "TA+"
+            else:
+                no_meja_text = f"{no_meja_val:,}" if no_meja_val is not None else "TA"
             no_meja = Label(
                 text=no_meja_text,
                 font_name=fonts.Bold,
@@ -234,25 +251,26 @@ class RiwayatTransaksiScreen(BoxLayout):
             row.add_widget(harga)
             # Kolom tindakan (hapus)
             tindakan_box = BoxLayout(
-                orientation="horizontal", size_hint_x=0.18, size_hint_y=1, spacing=4
+                orientation="horizontal", size_hint_x=0.25, size_hint_y=1, spacing=8
             )
             btn_tambah = SoftButton(
                 text="+",
                 size_hint_x=1,
                 size_hint_y=None,
                 height=50,
-                width=90,
-                font_size=16,
-                background_color=(1, 0.4, 0.4, 1),
+                font_size=30,
+                background_color=(0.2, 0.7, 0.3, 1),
+                font_name=fonts.Medium,
             )
-            btn_hapus = MinButton(
-                text="H",
+            btn_tambah.bind(on_press=lambda inst, meja=trx["no_meja"]: self.tambah_transaksi_baru(meja))
+            btn_hapus = ImageBtn(
+                # text="H",
+                source="gambar/logo_icon/delete.png",
                 size_hint_x=1,
                 size_hint_y=None,
                 height=50,
-                width=90,
-                font_size=13,
-                background_color=(1, 0.4, 0.4, 1),
+                # font_size=13,
+                # background_color=(1, 0.4, 0.4, 1),
             )
             btn_hapus.bind(on_press=lambda inst, id=trx["id"]: self.hapus_transaksi(id))
 
@@ -264,9 +282,38 @@ class RiwayatTransaksiScreen(BoxLayout):
             self.grid.add_widget(row)
 
     def hapus_transaksi(self, transaksi_id):
-        delete_transaksi(transaksi_id)
-        self.tampilkan_riwayat()
+        def confirm_delete():
+            delete_transaksi(transaksi_id)
+            self.tampilkan_riwayat()
+            # Tampilkan popup sukses
+            popup = SoftPopUp("Transaksi berhasil dihapus!")
+            popup.open()
+        
+        # Tampilkan popup konfirmasi
+        popup = ConfirmDeletePopup(on_confirm=confirm_delete)
+        popup.open()
 
     def hapus_semua_transaksi(self):
-        delete_all_transaksi()
-        self.tampilkan_riwayat()
+        def confirm_delete_all():
+            delete_all_transaksi()
+            self.tampilkan_riwayat()
+            # Tampilkan popup sukses
+            popup = SoftPopUp("Semua transaksi berhasil dihapus!")
+            popup.open()
+        
+        # Tampilkan popup konfirmasi
+        popup = ConfirmDeletePopup(
+            on_confirm=confirm_delete_all,
+            message="Apakah Anda yakin ingin menghapus SEMUA transaksi?"
+        )
+        popup.open()
+
+    def tambah_transaksi_baru(self, no_meja):
+        """Mengarahkan ke transaksi baru dengan no meja yang dipilih"""
+        app = App.get_running_app()
+        app.transaksi_from_riwayat(no_meja)
+
+    def ke_rekap_transaksi(self, instance):
+        """Mengarahkan ke halaman rekap transaksi"""
+        app = App.get_running_app()
+        app.rekap_transaksi()

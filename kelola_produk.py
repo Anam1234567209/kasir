@@ -67,13 +67,13 @@ class KelolaProdukScreen(BoxLayout):
             orientation="horizontal", size_hint=(1, None), height=60, spacing=12
         )
         self.nama_input = SoftTextInput(
-            hint_text="Nama Produk", size_hint=(None, 1), width=180
+            hint_text="Nama Produk", size_hint=(None, 1), width=200
         )
         self.harga_input = SoftTextInput(
-            hint_text="Harga", input_filter="float", size_hint=(None, 1), width=100
+            hint_text="Harga", input_filter="float", size_hint=(None, 1), width=180
         )
         self.gambar_input = SoftTextInput(
-            hint_text="Path Gambar", size_hint=(None, 1), width=220
+            hint_text="Path Gambar", size_hint=(None, 1), width=300
         )
 
         class RoundedSoftSpinner(BoxLayout):
@@ -124,12 +124,13 @@ class KelolaProdukScreen(BoxLayout):
         #     option_cls=SoftSpinnerOption,
         # )
 
-        self.simpan_btn = SoftButton(text="Simpan", size_hint=(None, 1), width=100)
+        self.simpan_btn = SoftButton(text="Simpan", size_hint=(None, 1), width=100, font_name=fonts.Bold,)
         self.simpan_btn.bind(on_press=self.simpan_produk)
         self.pilih_gambar_btn = SoftButton(
             text="Pilih",
             size_hint=(None, 1),
             width=110,
+            font_name=fonts.Bold,
         )
         self.pilih_gambar_btn.bind(on_press=self.buka_file_chooser)
         form.add_widget(self.nama_input)
@@ -213,7 +214,7 @@ class KelolaProdukScreen(BoxLayout):
                 )
             row.add_widget(img_widget)
             edit_btn = SoftButton(
-                text="Edit", size_hint_x=0.13, height=36, font_size=14
+                text="Edit", size_hint_x=0.13, height=36, font_size=14, font_name=fonts.Bold,
             )
             edit_btn.bind(
                 on_press=lambda inst, pid=pid, nama=nama, harga=harga, gambar=gambar, kategori=kategori: self.edit_produk(
@@ -285,7 +286,7 @@ class KelolaProdukScreen(BoxLayout):
             filters=["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif"], path=start_dir
         )
         layout.add_widget(filechooser)
-        btn_pilih = SoftButton(text="Pilih", size_hint=(1, None), height=40)
+        btn_pilih = SoftButton(text="Pilih", size_hint=(1, None), height=40, font_name=fonts.Bold,)
         layout.add_widget(btn_pilih)
         popup = Popup(title="Pilih Gambar", content=layout, size_hint=(0.9, 0.9))
 

@@ -94,8 +94,10 @@ class MenuImageBox(StencilView):
 
 
 class MenuTransaksiScreen(BoxLayout):
-    def __init__(self, **kwargs):
+    def __init__(self, from_riwayat=False, selected_meja=None, **kwargs):
         super().__init__(**kwargs)
+        self.from_riwayat = from_riwayat
+        self.selected_meja = selected_meja
         self.orientation = "horizontal"
         self.padding = 24
         self.spacing = 24
@@ -229,9 +231,11 @@ class MenuTransaksiScreen(BoxLayout):
         self.transaksi_layout = BoxLayout(
             orientation="vertical", size_hint=(0.6, 1), spacing=16
         )
+        # Label transaksi yang dinamis berdasarkan sumber
+        transaksi_label_text = "[b]Tambah Transaksi[/b]" if self.from_riwayat else "[b]Transaksi[/b]"
         self.transaksi_layout.add_widget(
             Label(
-                text="[b]Transaksi[/b]",
+                text=transaksi_label_text,
                 markup=True,
                 size_hint_y=None,
                 height=48,
@@ -276,8 +280,10 @@ class MenuTransaksiScreen(BoxLayout):
             width=70,
         )
 
+        # Set no meja berdasarkan sumber
+        initial_meja = str(self.selected_meja) if self.selected_meja else self.get_next_meja()
         self.noMeja_input = SoftSpinner(
-            text=self.get_next_meja(),
+            text=initial_meja,
             values=self.get_meja_options(),
             size_hint_y=None,
             height=32,
@@ -331,11 +337,11 @@ class MenuTransaksiScreen(BoxLayout):
         self.transaksi_layout.add_widget(self.pembayaran_input)
 
         # Tombol BAYAR membulat
-        bayar_btn = SoftButton(text="BAYAR", size_hint_y=None, height=54, font_size=20)
+        bayar_btn = SoftButton(text="BAYAR", size_hint_y=None, height=54, font_size=20, font_name=fonts.Bold,)
         bayar_btn.bind(on_press=self.bayar)
         self.transaksi_layout.add_widget(bayar_btn)
 
-        print_btn = SoftButton(text="PRINT", size_hint_y=None, height=54, font_size=20)
+        print_btn = SoftButton(text="PRINT", size_hint_y=None, height=54, font_size=20, font_name=fonts.Bold,)
         print_btn.bind(on_press=self.print)
         self.transaksi_layout.add_widget(print_btn)
 
@@ -630,11 +636,11 @@ class MenuTransaksiScreen(BoxLayout):
             self.meja_aktif.clear()
             save_meja_aktif(self.meja_aktif)
             reset_meja_aktif()
-            return "-1-"
+            return "1"
         for i in range(1, 51):
             if i not in terpakai:
-                return f"-{i}-"
-        return "-1-"
+                return f"{i}"
+        return "1"
 
     def get_meja_options(self):
         terpakai = self.meja_aktif
@@ -679,10 +685,17 @@ class MenuTransaksiScreen(BoxLayout):
             # Simpan transaksi ke database
             waktu = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             try:
-                no_meja = int(self.noMeja_input.text.strip("-"))
-                insert_transaksi(
-                    waktu, no_meja, total, pembayaran, kembalian, self.transaksi
-                )
+                no_meja = int(self.noMeja_input.text)
+                # Tandai transaksi jika berasal dari riwayat
+                if self.from_riwayat:
+                    # Tambahkan tanda khusus untuk transaksi dari riwayat
+                    insert_transaksi(
+                        waktu, no_meja, total, pembayaran, kembalian, self.transaksi, from_riwayat=True
+                    )
+                else:
+                    insert_transaksi(
+                        waktu, no_meja, total, pembayaran, kembalian, self.transaksi
+                    )
                 self.meja_aktif.add(no_meja)
                 save_meja_aktif(self.meja_aktif)
                 # Update pilihan Spinner setelah pembayaran
@@ -721,17 +734,17 @@ class MenuTransaksiScreen(BoxLayout):
         # Header section with cafe profile
         c.setFont("Helvetica-Bold", 24)
         cafe_name = cafe_profile["nama_cafe"] if cafe_profile else "WAROENG CAFE"
-        c.drawString(50, y, cafe_name)
+        c.drawString(40, y, cafe_name)
         y -= 30
 
-        c.setFont("Helvetica", 14)
-        slogan = (
-            cafe_profile["slogan"]
-            if cafe_profile
-            else "Nikmati Kelezatan dalam Setiap Gigitan"
-        )
-        c.drawString(50, y, slogan)
-        y -= 25
+        # c.setFont("Helvetica", 14)
+        # slogan = (
+        #     cafe_profile["slogan"]
+        #     if cafe_profile
+        #     else "Nikmati Kelezatan dalam Setiap Gigitan"
+        # )
+        # c.drawString(50, y, slogan)
+        # y -= 25
 
         c.setFont("Helvetica", 10)
         alamat = (
@@ -755,12 +768,21 @@ class MenuTransaksiScreen(BoxLayout):
         y -= 25
 
         c.setFont("Helvetica-Bold", 18)
-        c.drawString(50, y, "Ringkasan Transaksi")
+        c.drawString(50, y, "Transaksi")
         y -= 40
+
+        # Tampilkan no meja
+        c.setFont("Helvetica", 12)
+        no_meja_text = self.noMeja_input.text
+        if self.from_riwayat:
+            c.drawString(50, y, f"No Meja: {no_meja_text}+ (Tambah Transaksi)")
+        else:
+            c.drawString(50, y, f"No Meja: {no_meja_text}")
+        y -= 20
 
         c.setFont("Helvetica", 12)
         c.drawString(
-            50, y, f"Tanggal: {datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
+            50, y, f"Waktu: {datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
         )
         y -= 30
 
@@ -769,19 +791,34 @@ class MenuTransaksiScreen(BoxLayout):
         y -= 25
 
         c.setFont("Helvetica", 12)
+        total_items = sum(item['qty'] for item in pesanan)
+        c.drawString(60, y, f"Total Item: {total_items}")
+        y -= 20
+
         for item in pesanan:
             c.drawString(
-                60, y, f"- {item['name']}   Rp {item['price']:,} {item['qty']}x"
+                60, y, f"- {item['name']}   Rp {item['price']:,} x{item['qty']}"
             )
             y -= 20
 
         y -= 10
+        # Garis pemisah
+        c.line(50, y, width - 50, y)
+        y -= 20
+        
         c.setFont("Helvetica-Bold", 12)
         c.drawString(50, y, f"Total      : Rp {total:,}")
         y -= 20
         c.drawString(50, y, f"Pembayaran : Rp {pembayaran:,}")
         y -= 20
         c.drawString(50, y, f"Kembalian  : Rp {kembalian:,}")
+
+        y -= 30
+        # Footer
+        c.setFont("Helvetica", 10)
+        c.drawString(50, y, "Terima kasih telah berkunjung!")
+        y -= 15
+        c.drawString(50, y, "Silakan datang kembali")
 
         c.save()
 
@@ -792,6 +829,7 @@ class MenuTransaksiScreen(BoxLayout):
         self.transaksi = []
         self.pembayaran_input.text = ""
         self.kembalian_label.text = "Kembalian: Rp 0"
+        self.total_label.text = "Total: Rp 0"
         try:
             no_meja = int(self.noMeja_input.text)
             # self.meja_aktif.discard(no_meja)

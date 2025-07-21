@@ -16,6 +16,7 @@ from home import HomeScreen
 from menu_transaksi import MenuTransaksiScreen
 from kelola_produk import KelolaProdukScreen
 from riwayat_transaksi import RiwayatTransaksiScreen
+from rekap_transaksi import RekapTransaksiScreen
 from profile_screen import ProfileScreen
 
 
@@ -128,7 +129,7 @@ class LoginScreen(BoxLayout):
             font_size=24,
             bold=True,
         )
-        self.login_button.font_name = fonts.Regular
+        self.login_button.font_name = fonts.Medium
         self.login_button.bind(on_press=self.validate_login)
         self.add_widget(self.login_button)
 
@@ -217,6 +218,10 @@ class KasirApp(MDApp):
         self.root_layout.clear_widgets()
         self.root_layout.add_widget(MenuTransaksiScreen())
 
+    def transaksi_from_riwayat(self, no_meja):
+        self.root_layout.clear_widgets()
+        self.root_layout.add_widget(MenuTransaksiScreen(from_riwayat=True, selected_meja=no_meja))
+
     def kelola_produk(self):
         self.root_layout.clear_widgets()
         self.root_layout.add_widget(KelolaProdukScreen())
@@ -224,6 +229,10 @@ class KasirApp(MDApp):
     def riwayat_transaksi(self):
         self.root_layout.clear_widgets()
         self.root_layout.add_widget(RiwayatTransaksiScreen())
+
+    def rekap_transaksi(self):
+        self.root_layout.clear_widgets()
+        self.root_layout.add_widget(RekapTransaksiScreen())
 
     def profile_screen(self):
         self.root_layout.clear_widgets()

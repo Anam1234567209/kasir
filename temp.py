@@ -86,7 +86,7 @@ class SoftButton(Button):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.font_name = fonts.Bold
+        # self.font_name = fonts.Bold
         with self.canvas.before:
             self.bg_color = Color(0.40, 0.85, 0.87, 1)  # Soft blue
             self.rect = RoundedRectangle(radius=[20], pos=self.pos, size=self.size)
@@ -164,14 +164,14 @@ class MinButton(Button):
         self.color = (0.2, 0.3, 0.4, 1)  # Warna teks
         with self.canvas.before:
             Color(0.87, 0.57, 0.40)
-            self.outline = Line(
+            self.inline = Line(
                 width=1.3,
                 rounded_rectangle=[self.x, self.y, self.width, self.height, 18],
             )
-        self.bind(pos=self.update_outline, size=self.update_outline)
+        self.bind(pos=self.update_inline, size=self.update_inline)
 
-    def update_outline(self, *args):
-        self.outline.rounded_rectangle = [self.x, self.y, self.width, self.height, 18]
+    def update_inline(self, *args):
+        self.inline.rounded_rectangle = [self.x, self.y, self.width, self.height, 18]
 
     def update_rect(self, *args):
         self.rect.pos = self.pos
@@ -185,6 +185,41 @@ class MinButton(Button):
         else:
             self.bg_color.rgba = (1, 0.55, 0.55, 1)  # Normal
 
+class ImageButton(ButtonBehavior, Image):
+    pass
+
+class ImageBtn(ButtonBehavior, Image):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.font_name = fonts.Bold
+        # with self.canvas.before:
+        #     self.bg_color = Color(rgba=(204/255, 85/255, 0/255, 1))  # Soft blue
+        #     self.rect = RoundedRectangle(radius=[20], pos=self.pos, size=self.size)
+        # self.bind(pos=self.update_rect, size=self.update_rect)
+        self.background_color = (0, 0, 0, 0)
+        # self.color = (0.2, 0.3, 0.4, 1)  # Warna teks
+        with self.canvas.before:
+            Color(0.87, 0.57, 0.40)
+            self.inline = Line(
+                width=1.3,
+                rounded_rectangle=[self.x, self.y, self.width, self.height, 18],
+            )
+        self.bind(pos=self.update_inline, size=self.update_inline)
+
+    def update_inline(self, *args):
+        self.inline.rounded_rectangle = [self.x, self.y, self.width, self.height, 18]
+
+    def update_rect(self, *args):
+        self.rect.pos = self.pos
+        self.rect.size = self.size
+
+    def on_hover(self, instance, value):
+        if self.pressed:
+            self.bg_color.rgba = (0.85, 0.18, 0.18, 1)  # Merah gelap saat klik
+        elif value:
+            self.bg_color.rgba = (1, 0.35, 0.35, 1)  # Merah muda saat hover
+        else:
+            self.bg_color.rgba = (1, 0.55, 0.55, 1)  # Normal
 
 class HomeHoverBtn(Button):
     hovered = BooleanProperty(False)
@@ -316,6 +351,94 @@ class SoftPopUp(ModalView):
         anim.start(self)
 
 
+class ConfirmDeletePopup(ModalView):
+    def __init__(self, on_confirm=None, message="Apakah Anda yakin ingin menghapus transaksi ini?", **kwargs):
+        super().__init__(**kwargs)
+        self.on_confirm = on_confirm
+        self.size_hint = (0.7, 0.35)
+        self.background_color = (0, 0, 0, 0.25)
+        self.auto_dismiss = True
+
+        # Konten popup
+        layout = FloatLayout()
+        box = BoxLayout(
+            orientation="vertical",
+            size_hint=(1, 1),
+            padding=[24, 28, 24, 24],
+            spacing=18,
+            pos_hint={"center_x": 0.5, "center_y": 0.5},
+        )
+        with box.canvas.before:
+            Color(0.97, 0.99, 1, 1)  # Biru pastel sangat soft
+            box.bg_rect = RoundedRectangle(pos=box.pos, size=box.size, radius=[20])
+        box.bind(
+            pos=lambda inst, val: setattr(box.bg_rect, "pos", val),
+            size=lambda inst, val: setattr(box.bg_rect, "size", val),
+        )
+
+        label = Label(
+            text=message,
+            font_size=23,
+            font_name="Poppins",
+            color=(0.18, 0.38, 0.54, 1),
+            halign="center",
+            valign="middle",
+        )
+        label.bind(size=label.setter("text_size"))
+        box.add_widget(label)
+        
+
+        # Box untuk tombol dengan FloatLayout untuk posisi yang lebih presisi
+        button_container = FloatLayout(
+            size_hint_y=None,
+            height=50,
+        )
+
+        # Tombol Ya (sebelah kiri)
+        btn_ya = SoftButton(
+            text="Ya",
+            size_hint=(None, None),
+            width=120,
+            height=44,
+            pos_hint={"center_x": 0.35, "center_y": 0.5},
+            background_color=(1, 0.4, 0.4, 1),  # Merah
+            color=(1, 1, 1, 1),
+            font_size=16,
+            font_name="Poppins_Bold",
+        )
+        btn_ya.bind(on_release=self.confirm_delete)
+        button_container.add_widget(btn_ya)
+        
+        # Tombol Tidak (sebelah kanan)
+        btn_tidak = SoftButton(
+            text="Tidak",
+            size_hint=(None, None),
+            width=120,
+            height=44,
+            pos_hint={"center_x": 0.65, "center_y": 0.5},
+            background_color=(0.6, 0.6, 0.6, 1),  # Abu-abu
+            color=(1, 1, 1, 1),
+            font_size=16,
+            font_name="Poppins_Bold",
+        )
+        btn_tidak.bind(on_release=self.dismiss)
+        button_container.add_widget(btn_tidak)
+
+        box.add_widget(button_container)
+        layout.add_widget(box)
+        self.add_widget(layout)
+
+        # Animasi masuk
+        self.opacity = 0
+        anim = Animation(opacity=1, duration=0.15)
+        anim.start(self)
+
+    def confirm_delete(self, instance):
+        if self.on_confirm:
+            self.on_confirm()
+        self.dismiss()
+
+
 class SoftSpinnerOption(SpinnerOption):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -352,5 +475,9 @@ class SoftSpinner(Spinner):
         self.bg.size = self.size
 
 
-class ImageButton(ButtonBehavior, Image):
-    pass
+if __name__ == "__main__":
+    from db import import_produk_csv
+    import_produk_csv("produk2.csv")
+    print("Produk dari produk2.csv berhasil diimpor ke database.")
+
+

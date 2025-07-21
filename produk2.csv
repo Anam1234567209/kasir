@@ -1,0 +1,35 @@
+Id;Nama;Harga;gambar;Kategori
+1;Bakwan;3000;gambar\menu_makanan\bakwan.png;Makanan
+2;Ciken Krispi;15000;gambar\menu_makanan\ciken_krispi.png;Makanan
+3;Donat;8000;gambar\menu_makanan\donat.jpg;Makanan
+4;Jamur Krispi;12000;gambar\menu_makanan\jamur_krispi.png;Makanan
+5;Kentang;12000;gambar\menu_makanan\kentang.jpg;Makanan
+6;Kroket Kentang;10000;gambar\menu_makanan\kroket_kentang.png;Makanan
+7;Martabak Mi;10000;gambar\menu_makanan\martabak_mi.png;Makanan
+8;Mendoan;3000;gambar\menu_makanan\mendoan.png;Makanan
+9;Mini Pizza;16000;gambar\menu_makanan\mini_pizza.jpg;Makanan
+10;Mi Goreng;10000;gambar\menu_makanan\mi_goreng.jpg;Makanan
+11;Mi Rebus;10000;gambar\menu_makanan\mi_rebus.jpg;Makanan
+12;Nasgor;12000;gambar\menu_makanan\nasgor.jpg;Makanan
+13;Nasi Uduk;6000;gambar\menu_makanan\nasi_uduk.png;Makanan
+14;N Kucing;6000;gambar\menu_makanan\n_kucing.png;Makanan
+15;Onion;12000;gambar\menu_makanan\onion.png;Makanan
+16;Pisgor;3000;gambar\menu_makanan\pisgor.png;Makanan
+17;Ropang;13000;gambar\menu_makanan\ropang.jpg;Makanan
+18;Siomay;10000;gambar\menu_makanan\siomay.png;Makanan
+19;Snack Plater;18000;gambar\menu_makanan\snack_plater.jpg;Makanan
+20;Udang Keju;15000;gambar\menu_makanan\udang_keju.png;Makanan
+21;Americano;6000;gambar\menu_minuman\americano.jpg;Minuman
+22;Cappucino;12000;gambar\menu_minuman\cappucino.jpg;Minuman
+23;Matcha;12000;gambar\menu_minuman\matcha.jpg;Minuman
+24;Stmj;10000;gambar\menu_minuman\stmj.png;Minuman
+25;Strawberry Milk;12000;gambar\menu_minuman\strawberry_milk.jpg;Minuman
+26;Teh Sere;9000;gambar\menu_minuman\teh_sere.png;Minuman
+27;Wedang Jahe;9000;gambar\menu_minuman\wedang_jahe.png;Minuman
+28;Wedang Ronde;10000;gambar\menu_minuman\wedang_ronde.png;Minuman
+29;Wedang Uwuh;9000;gambar\menu_minuman\wedang_uwuh.png;Minuman
+30;Sate Jeroan;3000;gambar\Sate\sate_jeroan.png;Sate-satean
+31;Sate Kerang;4000;gambar\Sate\sate_kerang.png;Sate-satean
+32;Sate Kikil;3000;gambar\Sate\sate_kikil.jpeg;Sate-satean
+33;Sate Telur;4000;gambar\Sate\sate_telur.png;Sate-satean
+34;Sate Usus;3000;gambar\Sate\sate_usus.png;Sate-satean

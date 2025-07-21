@@ -28,7 +28,6 @@ CREATE TABLE IF NOT EXISTS cafe_profile (
     alamat_cafe TEXT DEFAULT 'Jl. Contoh No. 123, Kota, Provinsi',
     email_cafe TEXT DEFAULT 'info@waroengcafe.com',
     no_hp_cafe TEXT DEFAULT '+62 812-3456-7890',
-    website TEXT DEFAULT 'www.waroengcafe.com',
     jam_operasional TEXT DEFAULT '08:00 - 22:00 WIB',
     instagram TEXT DEFAULT '@waroengcafe'
 )
@@ -68,8 +67,8 @@ c.execute("SELECT COUNT(*) FROM cafe_profile")
 if c.fetchone()[0] == 0:
     c.execute(
         """
-    INSERT INTO cafe_profile (nama_cafe, slogan, logo_cafe, alamat_cafe, email_cafe, no_hp_cafe, website, jam_operasional, instagram) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO cafe_profile (nama_cafe, slogan, logo_cafe, alamat_cafe, email_cafe, no_hp_cafe, jam_operasional, instagram) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """,
         (
             "WAROENG CAFE",
@@ -78,7 +77,6 @@ if c.fetchone()[0] == 0:
             "Jl. Contoh No. 123, Kota, Provinsi",
             "info@waroengcafe.com",
             "+62 812-3456-7890",
-            "www.waroengcafe.com",
             "08:00 - 22:00 WIB",
             "@waroengcafe",
         ),
@@ -89,6 +87,13 @@ try:
     c.execute(
         "ALTER TABLE cafe_profile ADD COLUMN instagram TEXT DEFAULT '@waroengcafe'"
     )
+    conn.commit()
+except:
+    pass  # Column already exists
+
+# Add from_riwayat column to transaksi table if it doesn't exist
+try:
+    c.execute("ALTER TABLE transaksi ADD COLUMN from_riwayat BOOLEAN DEFAULT 0")
     conn.commit()
 except:
     pass  # Column already exists
@@ -144,14 +149,16 @@ def update_produk(pid, nama, harga, gambar, kategori):
     conn.close()
 
 
-def insert_transaksi(waktu, no_meja, total, pembayaran, kembalian, items):
+def insert_transaksi(
+    waktu, no_meja, total, pembayaran, kembalian, items, from_riwayat=False
+):
     import sqlite3
 
     conn = sqlite3.connect("kasir.db")
     c = conn.cursor()
     c.execute(
-        "INSERT INTO transaksi (waktu, no_meja, total, pembayaran, kembalian) VALUES (?, ?, ?, ?, ?)",
-        (waktu, no_meja, total, pembayaran, kembalian),
+        "INSERT INTO transaksi (waktu, no_meja, total, pembayaran, kembalian, from_riwayat) VALUES (?, ?, ?, ?, ?, ?)",
+        (waktu, no_meja, total, pembayaran, kembalian, from_riwayat),
     )
     transaksi_id = c.lastrowid
     for item in items:
@@ -169,7 +176,7 @@ def get_all_transaksi():
     conn = sqlite3.connect("kasir.db")
     c = conn.cursor()
     c.execute(
-        "SELECT id, waktu, no_meja, total, pembayaran, kembalian FROM transaksi ORDER BY id DESC"
+        "SELECT id, waktu, no_meja, total, pembayaran, kembalian, from_riwayat FROM transaksi ORDER BY id DESC"
     )
     transaksi = c.fetchall()
     result = []
@@ -187,6 +194,7 @@ def get_all_transaksi():
                 "total": t[3],
                 "pembayaran": t[4],
                 "kembalian": t[5],
+                "from_riwayat": t[6] if len(t) > 6 else False,
                 "items": [{"name": i[0], "price": i[1], "qty": i[2]} for i in items],
             }
         )
@@ -222,7 +230,7 @@ def get_cafe_profile():
     conn = sqlite3.connect("kasir.db")
     c = conn.cursor()
     c.execute(
-        "SELECT nama_cafe, slogan, logo_cafe, alamat_cafe, email_cafe, no_hp_cafe, website, jam_operasional, instagram FROM cafe_profile LIMIT 1"
+        "SELECT nama_cafe, slogan, logo_cafe, alamat_cafe, email_cafe, no_hp_cafe, jam_operasional, instagram FROM cafe_profile LIMIT 1"
     )
     result = c.fetchone()
     conn.close()
@@ -234,9 +242,8 @@ def get_cafe_profile():
             "alamat_cafe": result[3],
             "email_cafe": result[4],
             "no_hp_cafe": result[5],
-            "website": result[6],
-            "jam_operasional": result[7],
-            "instagram": result[8],
+            "jam_operasional": result[6],
+            "instagram": result[7],
         }
     return None
 
@@ -248,7 +255,6 @@ def update_cafe_profile(
     alamat_cafe,
     email_cafe,
     no_hp_cafe,
-    website,
     jam_operasional,
     instagram,
 ):
@@ -259,7 +265,7 @@ def update_cafe_profile(
     c.execute(
         """
     UPDATE cafe_profile SET 
-    nama_cafe=?, slogan=?, logo_cafe=?, alamat_cafe=?, email_cafe=?, no_hp_cafe=?, website=?, jam_operasional=?, instagram=?
+    nama_cafe=?, slogan=?, logo_cafe=?, alamat_cafe=?, email_cafe=?, no_hp_cafe=?, jam_operasional=?, instagram=?
     WHERE id=1
     """,
         (
@@ -269,10 +275,33 @@ def update_cafe_profile(
             alamat_cafe,
             email_cafe,
             no_hp_cafe,
-            website,
             jam_operasional,
             instagram,
         ),
     )
+    conn.commit()
+    conn.close()
+
+
+def import_produk_csv(csv_path="produk.csv"):
+    import sqlite3
+    import csv
+
+    conn = sqlite3.connect("kasir.db")
+    c = conn.cursor()
+    with open(csv_path, newline="", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile, delimiter=";")
+        for row in reader:
+            nama = row["Nama"]
+            harga = float(row["Harga"])
+            gambar = row["gambar"]
+            kategori = row["Kategori"]
+            # Cek apakah produk sudah ada berdasarkan nama
+            c.execute("SELECT COUNT(*) FROM produk WHERE nama=?", (nama,))
+            if c.fetchone()[0] == 0:
+                c.execute(
+                    "INSERT INTO produk (nama, harga, gambar, kategori) VALUES (?, ?, ?, ?)",
+                    (nama, harga, gambar, kategori),
+                )
     conn.commit()
     conn.close()
